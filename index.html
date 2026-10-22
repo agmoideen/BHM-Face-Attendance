@@ -30,20 +30,15 @@
                 </div>
                 
                 <div id="status" class="text-sm font-semibold text-center text-slate-700 bg-blue-50 p-2.5 rounded-xl mb-3">
-                    ക്യാമറ റെഡിയാകുന്നു...
+                    മോഡലുകൾ ലോഡ് ചെയ്യുന്നു... കാത്തിരിക്കുക.
                 </div>
                 
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-2">
                         <h2 class="font-bold text-slate-700 text-sm">ഇന്നത്തെ ഹാജർ പട്ടിക:</h2>
-                        <div class="flex gap-1">
-                            <button onclick="markManualAttendance()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow transition">
-                                ➕ ഹാജർ ഇടുക
-                            </button>
-                            <button onclick="shareOnWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1">
-                                💬 WhatsApp
-                            </button>
-                        </div>
+                        <button onclick="shareOnWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
+                            💬 WhatsApp ചെയ്യുക
+                        </button>
                     </div>
                     <ul id="attendance-list" class="max-h-40 overflow-y-auto text-xs text-slate-600 space-y-1.5 bg-slate-50 p-2.5 rounded-xl">
                         <li class="text-slate-400 text-center py-2">ഹാജരുകാർ ഇതുമില്ല...</li>
@@ -74,8 +69,23 @@
                     <h3 id="form-heading" class="font-bold text-slate-700 text-xs">പുതിയ കുട്ടിയുടെ മുഖം രജിസ്റ്റർ ചെയ്യാൻ:</h3>
                     <input type="hidden" id="edit-index" value="-1">
                     <input type="text" id="student-name" placeholder="കുട്ടിയുടെ പേര്" class="w-full p-2 text-xs border rounded-lg">
-                    <input type="file" id="student-photo" accept="image/*" class="w-full text-xs text-slate-500 bg-white p-1.5 border rounded-lg">
-                    <div class="flex gap-2">
+                    
+                    <!-- ഫോട്ടോ അപ്‌ലോഡ് അല്ലെങ്കിൽ ക്യാമറ ക്യാപ്ചർ ഓപ്ഷൻ -->
+                    <div class="border p-2 rounded-lg bg-white space-y-2">
+                        <p class="text-[11px] text-slate-500 font-medium">ഫോട്ടോ നൽകുന്ന രീതി:</p>
+                        <input type="file" id="student-photo" accept="image/*" class="w-full text-xs text-slate-500">
+                        <div class="text-center text-[10px] text-slate-400 font-bold">অথവാ</div>
+                        <button onclick="captureFromCamera()" type="button" class="w-full bg-slate-800 text-white text-xs py-1.5 rounded-lg">📷 ക്യാമറയിൽ നിന്ന് ഫോട്ടോ എടുക്കുക</button>
+                        <!-- ക്യാപ്ചർ ചെയ്ത ഫോട്ടോ കാണിക്കാൻ -->
+                        <div id="captured-preview-container" class="hidden text-center mt-1">
+                            <img id="captured-preview" class="w-16 h-16 object-cover mx-auto rounded-full border">
+                            <span class="text-[10px] text-emerald-600 font-bold">ഫോട്ടോ ക്യാപ്ചർ ചെയ്തു!</span>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="captured-photo-data">
+
+                    <div class="flex gap-2 pt-1">
                         <button id="save-btn" onclick="registerStudent()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg shadow">💾 സേവ് ചെയ്യുക</button>
                         <button id="cancel-edit-btn" onclick="resetForm()" class="hidden bg-gray-500 text-white text-xs font-bold py-2 px-3 rounded-lg">റദ്ദാക്കുക</button>
                     </div>
@@ -83,11 +93,25 @@
                 </div>
 
                 <div>
-                    <h3 class="font-bold text-slate-700 text-xs mb-2">രജിസ്റ്റർ ചെയ്ത കുട്ടികളുടെ ലിസ്റ്റ് (എഡിറ്റ് / ഡിലീറ്റ്):</h3>
+                    <h3 class="font-bold text-slate-700 text-xs mb-2">രജിസ്റ്റർ ചെയ്ത കുട്ടികളുടെ ലിസ്റ്റ്:</h3>
                     <ul id="registered-students-list" class="max-h-40 overflow-y-auto text-xs bg-slate-50 p-2 rounded-xl space-y-1.5">
                         <li class="text-slate-400 text-center py-2">കുട്ടികൾ ആരും ഇല്ല</li>
                     </ul>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ക്യാമറ ലൈവ് ക്യാപ്ചർ മോഡൽ -->
+    <div id="camera-capture-modal" class="fixed inset-0 bg-black/80 hidden flex flex-col justify-center items-center p-4 z-50">
+        <div class="w-full max-w-sm bg-white rounded-2xl p-4 text-center space-y-3">
+            <h3 class="font-bold text-slate-800 text-sm">കുട്ടിയുടെ മുഖം വ്യക്തമായി കാണിച്ച് ഫോട്ടോ എടുക്കുക</h3>
+            <div class="relative w-full h-64 bg-black rounded-xl overflow-hidden flex justify-center items-center">
+                <video id="capture-video" autoplay muted playsinline class="absolute w-full h-full object-cover"></video>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="takeSnapshot()" class="flex-1 bg-emerald-600 text-white text-xs font-bold py-2 rounded-xl">📸 ഫോട്ടോ എടുക്കുക</button>
+                <button onclick="closeCameraCapture()" class="bg-gray-500 text-white text-xs font-bold py-2 px-4 rounded-xl">അടയ്ക്കുക</button>
             </div>
         </div>
     </div>
@@ -98,64 +122,88 @@
         const attendanceList = document.getElementById('attendance-list');
         
         let todayAttendance = new Set();
-        let isAiLoaded = false;
+        let labeledFaceDescriptors = [];
+        let faceMatcher = null;
+        let isAiReady = false;
 
-        // 1. ക്യാമറ മാത്രം തടസ്സമില്ലാതെ പെട്ടെന്ന് സ്റ്റാർട്ട് ചെയ്യാൻ
+        // 1. പ്രധാന ക്യാമറയും AI മോഡലുകളും ലോഡ് ചെയ്യാൻ
+        async function loadModelsAndCamera() {
+            try {
+                statusText.innerText = "AI ഫേസ് മോഡലുകൾ ലോഡ് ചെയ്യുന്നു...";
+                const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+                
+                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceLandmark6dNet.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+                
+                isAiReady = true;
+                statusText.innerText = "ഡാറ്റാബേസ് ലോഡ് ചെയ്യുന്നു...";
+                await loadStoredFaces();
+                startVideo();
+            } catch (e) {
+                statusText.innerText = "മോഡൽ ലോഡിംഗ് പരാജയപ്പെട്ടു, നെറ്റ് പരിശോധിക്കുക!";
+            }
+        }
+
         function startVideo() {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
                 .then(stream => {
                     video.srcObject = stream;
-                    statusText.innerText = "ക്യാമറ റെഡിയാണ്. കുട്ടിയുടെ ഫോട്ടോ കാണിച്ച് ഹാജർ എടുക്കാം.";
+                    statusText.innerText = "മുഖം സ്കാൻ ചെയ്യാൻ തയ്യാറാണ്. കുട്ടികൾ ക്യാമറയിലേക്ക് നോക്കുക.";
                 })
                 .catch(err => {
                     statusText.innerText = "ക്യാമറ അനുമതി ലഭ്യമല്ല!";
                 });
         }
 
-        // 2. പശ്ചാത്തലത്തിൽ AI മോഡൽ ലോഡ് ചെയ്യാൻ ശ്രമിക്കുക (പരാജയപ്പെട്ടാലും ക്യാമറ തടസ്സപ്പെടില്ല)
-        async function initAi() {
-            startVideo();
-            try {
-                const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-                isAiLoaded = true;
-            } catch (e) {
-                console.log("AI Model load skipped, using manual/direct capture mode.");
-            }
-        }
+        // 2. ലോക്കൽ സ്റ്റോറേജിൽ നിന്ന് ഫേസ് ഡാറ്റ എടുത്ത് Matcher തയ്യാറാക്കുക
+        async function loadStoredFaces() {
+            const savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
+            labeledFaceDescriptors = [];
 
-        // 3. മാനുവൽ/ക്യാമറ വഴി ഹാജർ രേഖപ്പെടുത്തൽ
-        function markManualAttendance() {
-            let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
-            if (savedStudents.length === 0) {
-                alert("ആദ്യം അഡ്മിൻ പാനലിൽ പോയി കുട്ടികളെ രജിസ്റ്റർ ചെയ്യുക!");
-                return;
-            }
-            
-            // പ്രോംപ്റ്റ് വഴി കുട്ടിയെ തിരഞ്ഞെടുക്കുകയോ അല്ലെങ്കിൽ ലിസ്റ്റിൽ നിന്ന് മാർക്ക് ചെയ്യുകയോ ചെയ്യാം
-            let studentNames = savedstudentsListNames();
-            let selectedName = prompt("ഹാജർ രേഖപ്പെടുത്തേണ്ട കുട്ടിയുടെ പേര് നൽകുക:\n\n" + studentNames.join(", "));
-            
-            if (selectedName) {
-                let found = savedStudents.find(s => s.name.toLowerCase() === selectedName.toLowerCase());
-                if (found) {
-                    markAttendance(found.name);
-                } else {
-                    alert("ഈ പേരിൽ കുട്ടി രജിസ്റ്റർ ചെയ്തിട്ടില്ല!");
+            for (let student of savedStudents) {
+                try {
+                    const img = await faceapi.fetchImage(student.photo);
+                    const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                    if (detections) {
+                        labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]));
+                    }
+                } catch (err) {
+                    console.error("Face error:", err);
                 }
             }
+
+            if (labeledFaceDescriptors.length > 0) {
+                faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6);
+            } else {
+                faceMatcher = null;
+            }
         }
 
-        function savedstudentsListNames() {
-            let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
-            return savedStudents.map(s => s.name);
-        }
+        // 3. ഓട്ടോമാറ്റിക് ഫേസ് റെക്കഗ്നിഷൻ ലൂപ്പ് (മുഖം കണ്ടാല്‍ തനിയെ അറ്റൻഡൻസ് വീഴും)
+        video.addEventListener('play', () => {
+            const canvas = document.getElementById('overlay');
+            const displaySize = { width: 300, height: 250 };
+            faceapi.matchDimensions(canvas, displaySize);
+
+            setInterval(async () => {
+                if (!isAiReady || !faceMatcher) return;
+
+                const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                if (detections.length > 0) {
+                    const results = detections.map(d => faceMatcher.findBestMatch(d.descriptor));
+                    results.forEach(result => {
+                        const name = result.label;
+                        if (name !== 'unknown') {
+                            markAttendance(name);
+                        }
+                    });
+                }
+            }, 2000);
+        });
 
         function markAttendance(name) {
-            if (todayAttendance.has(name)) {
-                alert(`${name}-ന്റെ ഹാജർ ഇതിനകം രേഖപ്പെടുത്തിയിട്ടുണ്ട്!`);
-                return;
-            }
+            if (todayAttendance.has(name)) return; // ഒരു ദിവസം ഒരു തവണ മാത്രം
             
             todayAttendance.add(name);
             let time = new Date().toLocaleTimeString();
@@ -209,10 +257,42 @@
             }
         }
 
-        // 5. പുതിയ കുട്ടിയെ ചേർക്കാനും എഡിറ്റ് ചെയ്യാനും
-        function registerStudent() {
+        // 5. ക്യാമറ വഴി ഫോട്ടോ എടുക്കാനുള്ള ഫങ്ഷനുകൾ
+        let captureStream = null;
+        function captureFromCamera() {
+            document.getElementById('camera-capture-modal').classList.remove('hidden');
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(stream => {
+                    captureStream = stream;
+                    document.getElementById('capture-video').srcObject = stream;
+                });
+        }
+        function closeCameraCapture() {
+            if (captureStream) {
+                captureStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('camera-capture-modal').classList.add('hidden');
+        }
+        function takeSnapshot() {
+            const capVideo = document.getElementById('capture-video');
+            const canvas = document.createElement('canvas');
+            canvas.width = capVideo.videoWidth || 300;
+            canvas.height = capVideo.videoHeight || 300;
+            canvas.getContext('2d').drawImage(capVideo, 0, 0, canvas.width, canvas.height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            document.getElementById('captured-photo-data').value = dataUrl;
+            document.getElementById('captured-preview').src = dataUrl;
+            document.getElementById('captured-preview-container').classList.remove('hidden');
+            
+            closeCameraCapture();
+        }
+
+        // 6. കുട്ടിയെ സേവ് ചെയ്യാനും എഡിറ്റ് ചെയ്യാനും
+        async function registerStudent() {
             const name = document.getElementById('student-name').value.trim();
             const photoInput = document.getElementById('student-photo');
+            const capturedPhoto = document.getElementById('captured-photo-data').value;
             const editIndex = parseInt(document.getElementById('edit-index').value);
 
             if (!name) {
@@ -222,27 +302,29 @@
 
             let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
 
-            if (photoInput.files.length > 0) {
+            if (capturedPhoto) {
+                saveOrUpdateData(editIndex, name, capturedPhoto, savedStudents);
+            } else if (photoInput.files.length > 0) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    const photoDataUrl = event.target.result;
-                    saveOrUpdateData(editIndex, name, photoDataUrl, savedStudents);
+                reader.onload = function(e) {
+                    saveOrUpdateData(editIndex, name, e.target.result, savedStudents);
                 };
                 reader.readAsDataURL(photoInput.files[0]);
             } else {
-                // ഫോട്ടോ മാറ്റിയില്ലെങ്കിൽ പഴയ ഫോട്ടോ നിലനിർത്തുക
                 let existingPhoto = editIndex >= 0 ? savedStudents[editIndex].photo : "";
+                if (!existingPhoto) {
+                    alert("ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യുകയോ ക്യാമറ വഴി എടുക്കുകയോ ചെയ്യുക!");
+                    return;
+                }
                 saveOrUpdateData(editIndex, name, existingPhoto, savedStudents);
             }
         }
 
-        function saveOrUpdateData(index, name, photo, list) {
+        async function saveOrUpdateData(index, name, photo, list) {
             if (index >= 0) {
-                // എഡിറ്റ് ചെയ്യുമ്പോൾ
                 list[index] = { name: name, photo: photo || list[index].photo };
-                document.getElementById('admin-status').innerText = `${name} വിജയകരമായി എഡിറ്റ് ചെയ്തു!`;
+                document.getElementById('admin-status').innerText = `${name} വിജയകരമായി അപ്ഡേറ്റ് ചെയ്തു!`;
             } else {
-                // പുതിയത് ചേർക്കുമ്പോൾ
                 list.push({ name: name, photo: photo });
                 document.getElementById('admin-status').innerText = `${name} വിജയകരമായി സേവ് ചെയ്തു!`;
             }
@@ -250,11 +332,14 @@
             localStorage.setItem('mems_face_students', JSON.stringify(list));
             resetForm();
             loadRegisteredStudentsList();
+            await loadStoredFaces();
         }
 
         function resetForm() {
             document.getElementById('student-name').value = '';
             document.getElementById('student-photo').value = '';
+            document.getElementById('captured-photo-data').value = '';
+            document.getElementById('captured-preview-container').classList.add('hidden');
             document.getElementById('edit-index').value = '-1';
             document.getElementById('form-heading').innerText = "പുതിയ കുട്ടിയുടെ മുഖം രജിസ്റ്റർ ചെയ്യാൻ:";
             document.getElementById('save-btn').innerText = "💾 സേവ് ചെയ്യുക";
@@ -262,7 +347,7 @@
             document.getElementById('admin-status').innerText = '';
         }
 
-        // 6. ലിസ്റ്റ് ലോഡ് ചെയ്യൽ (എഡിറ്റ് & ഡിലീറ്റ് ബട്ടണുകൾ സഹിതം)
+        // 7. ലിസ്റ്റ് കാണിക്കാനും എഡിറ്റ്/ഡിലീറ്റ് ചെയ്യാനും
         function loadRegisteredStudentsList() {
             const listEl = document.getElementById('registered-students-list');
             let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
@@ -275,41 +360,40 @@
             listEl.innerHTML = savedStudents.map((s, index) => `
                 <li class="flex justify-between items-center bg-white p-2 rounded-lg border">
                     <div class="flex items-center gap-2">
-                        <img src="${s.photo || 'https://via.placeholder.com/40'}" class="w-8 h-8 rounded-full object-cover border">
+                        <img src="${s.photo}" class="w-8 h-8 rounded-full object-cover border">
                         <span class="font-medium text-slate-700">${s.name}</span>
                     </div>
                     <div class="flex gap-1">
-                        <button onclick="editStudent(${index})" class="text-blue-600 hover:text-blue-800 font-bold text-xs bg-blue-50 px-2 py-1 rounded">എഡിറ്റ്</button>
-                        <button onclick="deleteStudent(${index})" class="text-red-500 hover:text-red-700 font-bold text-xs bg-red-50 px-2 py-1 rounded">ഡിലീറ്റ്</button>
+                        <button onclick="editStudent(${index})" class="text-blue-600 font-bold text-xs bg-blue-50 px-2 py-1 rounded">എഡിറ്റ്</button>
+                        <button onclick="deleteStudent(${index})" class="text-red-500 font-bold text-xs bg-red-50 px-2 py-1 rounded">ഡിലീറ്റ്</button>
                     </div>
                 </li>
             `).join('');
         }
 
-        // 7. എഡിറ്റ് ചെയ്യാൻ ഡാറ്റ ഫോമിലേക്ക് എടുക്കുക
         function editStudent(index) {
             let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
             let student = savedStudents[index];
 
             document.getElementById('student-name').value = student.name;
             document.getElementById('edit-index').value = index;
-            document.getElementById('form-heading').innerText = `കുട്ടിയുടെ വിവരങ്ങൾ എഡിറ്റ് ചെയ്യുന്നു (${student.name}):`;
+            document.getElementById('form-heading').innerText = `എഡിറ്റ് ചെയ്യുന്നു (${student.name}):`;
             document.getElementById('save-btn').innerText = "🔄 അപ്ഡേറ്റ് ചെയ്യുക";
             document.getElementById('cancel-edit-btn').classList.remove('hidden');
         }
 
-        // 8. ഡിലീറ്റ് ചെയ്യാൻ
-        function deleteStudent(index) {
-            if (confirm("തീർച്ചയായും ഈ കുട്ടിയുടെ ഡാറ്റ ഡിലീറ്റ് ചെയ്യ வேண்டுമോ?")) {
+        async function deleteStudent(index) {
+            if (confirm("ഈ കുട്ടിയുടെ ഡാറ്റ ഡിലീറ്റ് ചെയ്യ வேண்டுമോ?")) {
                 let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
                 savedStudents.splice(index, 1);
                 localStorage.setItem('mems_face_students', JSON.stringify(savedStudents));
                 loadRegisteredStudentsList();
+                await loadStoredFaces();
             }
         }
 
         // ആപ്പ് സ്റ്റാർട്ട് ചെയ്യുക
-        initAi();
+        loadModelsAndCamera();
     </script>
 </body>
 </html>
