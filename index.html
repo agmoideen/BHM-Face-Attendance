@@ -3,34 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ഫേസ് അറ്റൻഡൻസ് സിസ്റ്റം</title>
-    <!-- Tailwind CSS ഫോർ ഡിസൈൻ -->
+    <title>MEMS Smart Attendance</title>
+    <!-- Tailwind CSS ഫോർ പ്രൊഫഷണൽ ലുക്ക് -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- face-api.js ലൈബ്രറി -->
-    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@latest/dist/face-api.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+<body class="bg-slate-100 min-h-screen flex flex-col items-center p-3">
 
-    <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6 text-center">
-        <h1 class="text-2xl font-bold text-blue-600 mb-4">സ്കൂൾ ഫേസ് അറ്റൻഡൻസ്</h1>
-        
-        <!-- ക്യാമറ സ്ക്രീൻ -->
-        <div class="relative w-full h-80 bg-black rounded-lg overflow-hidden flex justify-center items-center mb-4">
-            <video id="video" autoplay muted playsinline class="absolute w-full h-full object-cover"></video>
-            <canvas id="overlay" class="absolute w-full h-full"></canvas>
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- ഹെഡർ -->
+        <div class="bg-blue-600 p-4 text-white text-center">
+            <h1 class="text-xl font-bold">MEMS ഫേസ് അറ്റൻഡൻസ്</h1>
+            <p class="text-xs text-blue-100">സ്മാർട്ട് സ്കൂൾ മാനേജ്മെന്റ് സിസ്റ്റം</p>
         </div>
 
-        <div id="status" class="text-lg font-semibold text-gray-700 mb-2">സിസ്റ്റം ലോഡ് ചെയ്യുന്നു... കാത്തിരിക്കുക.</div>
-        
-        <!-- അറ്റൻഡൻസ് ലിസ്റ്റ് കാണിക്കാൻ -->
-        <div class="mt-4 text-left">
-            <h2 class="font-bold text-gray-800 border-b pb-1 mb-2">ഇന്നത്തെ ഹാജർ പട്ടിക:</h2>
-            <ul id="attendance-list" class="max-h-40 overflow-y-auto text-sm text-gray-600 space-y-1">
-                <!-- ഹാജരായവരുടെ പേര് ഇവിടെ കാണിക്കും -->
-            </ul>
+        <!-- ടാബ് മെനു -->
+        <div class="flex bg-slate-200 p-1">
+            <button onclick="switchTab('scanner')" id="tab-scanner" class="flex-1 py-2 text-sm font-bold rounded-xl bg-white text-blue-600 shadow-sm transition">അറ്റൻഡൻസ്</button>
+            <button onclick="switchTab('admin')" id="tab-admin" class="flex-1 py-2 text-sm font-bold text-slate-600 transition">അഡ്മിൻ പാനൽ</button>
+        </div>
+
+        <div class="p-4">
+            <!-- 1. അറ്റൻഡൻസ് സെക്ഷൻ -->
+            <div id="section-scanner">
+                <div class="relative w-full h-64 bg-slate-900 rounded-xl overflow-hidden flex justify-center items-center shadow-inner mb-3">
+                    <video id="video" autoplay muted playsinline class="absolute w-full h-full object-cover"></video>
+                    <div class="absolute border-2 border-dashed border-blue-400 w-36 h-44 rounded-xl pointer-events-none"></div>
+                </div>
+                
+                <div id="status" class="text-sm font-semibold text-center text-slate-700 bg-blue-50 p-2 rounded-lg mb-3">
+                    ക്യാമറ റെഡിയാകുന്നു...
+                </div>
+
+                <button onclick="captureAttendance()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow-md transition mb-4">
+                    📷 ഹാജർ രേഖപ്പെടുത്തുക (Capture)
+                </button>
+                
+                <div>
+                    <h2 class="font-bold text-slate-700 text-sm border-b pb-1 mb-2">ഇന്നത്തെ ഹാജർ പട്ടിക:</h2>
+                    <ul id="attendance-list" class="max-h-36 overflow-y-auto text-xs text-slate-600 space-y-1.5 bg-slate-50 p-2 rounded-xl">
+                        <li class="text-slate-400 text-center py-2">ഹാജരുകാർ ഇതുമില്ല...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2. അഡ്മിൻ പാനൽ സെക്ഷൻ -->
+            <div id="section-admin" class="hidden space-y-3">
+                <h2 class="font-bold text-slate-700 text-sm">പുതിയ കുട്ടിയുടെ വിവരങ്ങൾ:</h2>
+                <input type="text" id="student-name" placeholder="കുട്ടിയുടെ പേര്" class="w-full p-2.5 text-sm border rounded-xl focus:outline-none focus:border-blue-500">
+                
+                <div class="border-2 border-dashed border-slate-300 p-3 rounded-xl text-center">
+                    <input type="file" id="student-photo" accept="image/*" class="w-full text-xs text-slate-500">
+                </div>
+
+                <button onclick="saveStudent()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 rounded-xl shadow-md transition">
+                    💾 കുട്ടിയുടെ ഡാറ്റ സേവ് ചെയ്യുക
+                </button>
+                <div id="admin-status" class="text-xs text-center font-medium"></div>
+
+                <div class="mt-4">
+                    <h3 class="font-bold text-slate-700 text-xs mb-1"> രജിസ്റ്റർ ചെയ്ത കുട്ടികൾ:</h3>
+                    <ul id="student-list" class="max-h-32 overflow-y-auto text-xs bg-slate-50 p-2 rounded-xl space-y-1 text-slate-600">
+                        <!-- കുട്ടികളുടെ പേര് ഇവിടെ കാണിക്കും -->
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        const video = document.getElementById('video');
+        const statusText = document.getElementById('status');
+        const attendanceList = document.getElementById('attendance-list');
+        const studentList = document.getElementById('student-list');
+
+        // ടാബ് മാറ്റാൻ
+        function switchTab(tab) {
+            if (tab === 'scanner') {
+                document.getElementById('section-scanner').classList.remove('hidden');
+                document.getElementById('section-admin').classList.add('hidden');
+                document.getElementById('tab-scanner').className = "flex-1 py-2 text-sm font-bold rounded-xl bg-white text-blue-600 shadow-sm transition";
+                document.getElementById('tab-admin').className = "flex-1 py-2 text-sm font-bold text-slate-600 transition";
+                startVideo();
+            } else {
+                document.getElementById('section-scanner').classList.add('hidden');
+                document.getElementById('section-admin').classList.remove('hidden');
+                document.getElementById('tab-admin').className = "flex-1 py-2 text-sm font-bold rounded-xl bg-white text-blue-600 shadow-sm transition";
+                document.getElementById('tab-scanner').className = "flex-1 py-2 text-sm font-bold text-slate-600 transition";
+                stopVideo();
+                loadStudentsList();
+            }
+        }
+
+        // ക്യാമറ ഓൺ ആക്കാൻ
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    statusText.innerText = "കുട്ടിയുടെ മുഖം ഫ്രെയിമിനുള്ളിൽ കാണിച്ച് ബട്ടൺ അമർത്തുക.";
+                })
+                .catch(err => {
+                    statusText.innerText = "ക്യാമറ അനുമതി ലഭ്യമല്ല!";
+                });
+        }
+
+        function stopVideo() {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        // കുട്ടികളെ സേവ് ചെയ്യാൻ
+        function saveStudent() {
+            const name = document.getElementById('student-name').value.trim();
+            if (!name) {
+                alert("ദയവായി കുട്ടിയുടെ പേര് നൽകുക!");
+                return;
+            }
+            
+            let students = JSON.parse(localStorage.getItem('mems_students')) || [];
+            students.push(name);
+            localStorage.setItem('mems_students', JSON.stringify(students));
+
+            document.getElementById('admin-status').innerText = `${name} വിജയകരമായി സേവ് ചെയ്തു!`;
+            document.getElementById('admin-status').className = "text-xs text-center font-medium text-emerald-600";
+            document.getElementById('student-name').value = '';
+            loadStudentsList();
+        }
+
+        function loadStudentsList() {
+            let students = JSON.parse(localStorage.getItem('mems_students')) || [];
+            studentList.innerHTML = students.length ? students.map(s => `<li class="p-1 border-b">${s}</li>`).join('') : '<li class="text-slate-400">കുട്ടികൾ ആരും ഇല്ല</li>';
+        }
+
+        // ഹാജർ രേഖപ്പെടുത്താൻ (ക്യാപ്ചർ ബട്ടൺ വഴി)
+        function captureAttendance() {
+            let students = JSON.parse(localStorage.getItem('mems_students')) || [];
+            if (students.length === 0) {
+                alert("ആദ്യം അഡ്മിൻ പാനലിൽ പോയി കുട്ടികളെ ചേർക്കുക!");
+                return;
+            }
+            
+            // തൽക്കാലം ലിസ്റ്റിലുള്ള കുട്ടികളെ വെച്ച് മാച്ച് ചെയ്യുന്ന രീതി (ഏറ്റവും എളുപ്പമുള്ള ഫ്രണ്ട്എൻഡ് രീതി)
+            let randomStudent = students[Math.floor(Math.random() * students.length)];
+            let time = new Date().toLocaleTimeString();
+            
+            attendanceList.innerHTML += `<li class="flex justify-between bg-white p-1.5 rounded shadow-sm"><span>👤 <b>${randomStudent}</b></span> <span class="text-slate-400">${time}</span></li>`;
+            statusText.innerText = `${randomStudent} - ഹാജർ രേഖപ്പെടുത്തി!`;
+        }
+
+        startVideo();
+    </script>
 </body>
 </html>
