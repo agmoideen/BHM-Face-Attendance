@@ -30,7 +30,7 @@
                 </div>
                 
                 <div id="status" class="text-sm font-semibold text-center text-slate-700 bg-blue-50 p-2.5 rounded-xl mb-3">
-                    മോഡലുകൾ ലോഡ് ചെയ്യുന്നു... കാത്തിരിക്കുക.
+                    ക്യാമറ റെഡിയാകുന്നു...
                 </div>
                 
                 <div class="mb-4">
@@ -70,13 +70,11 @@
                     <input type="hidden" id="edit-index" value="-1">
                     <input type="text" id="student-name" placeholder="കുട്ടിയുടെ പേര്" class="w-full p-2 text-xs border rounded-lg">
                     
-                    <!-- ഫോട്ടോ അപ്‌ലോഡ് അല്ലെങ്കിൽ ക്യാമറ ക്യാപ്ചർ ഓപ്ഷൻ -->
                     <div class="border p-2 rounded-lg bg-white space-y-2">
                         <p class="text-[11px] text-slate-500 font-medium">ഫോട്ടോ നൽകുന്ന രീതി:</p>
                         <input type="file" id="student-photo" accept="image/*" class="w-full text-xs text-slate-500">
-                        <div class="text-center text-[10px] text-slate-400 font-bold">অথവാ</div>
+                        <div class="text-center text-[10px] text-slate-400 font-bold">അഥവാ</div>
                         <button onclick="captureFromCamera()" type="button" class="w-full bg-slate-800 text-white text-xs py-1.5 rounded-lg">📷 ക്യാമറയിൽ നിന്ന് ഫോട്ടോ എടുക്കുക</button>
-                        <!-- ക്യാപ്ചർ ചെയ്ത ഫോട്ടോ കാണിക്കാൻ -->
                         <div id="captured-preview-container" class="hidden text-center mt-1">
                             <img id="captured-preview" class="w-16 h-16 object-cover mx-auto rounded-full border">
                             <span class="text-[10px] text-emerald-600 font-bold">ഫോട്ടോ ക്യാപ്ചർ ചെയ്തു!</span>
@@ -126,37 +124,37 @@
         let faceMatcher = null;
         let isAiReady = false;
 
-        // 1. പ്രധാന ക്യാമറയും AI മോഡലുകളും ലോഡ് ചെയ്യാൻ
+        // 1. ക്യാമറ ആദ്യം തന്നെ തടസ്സമില്ലാതെ ഓൺ ആക്കൽ
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    statusText.innerText = "ക്യാമറ റെഡിയാണ്. മുഖം സ്കാൻ ചെയ്യുന്നു...";
+                })
+                .catch(err => {
+                    statusText.innerText = "ക്യാമറ അനുമതി ലഭ്യമല്ല! പെർമിഷൻ പരിശോധിക്കുക.";
+                });
+        }
+
+        // 2. AI മോഡലുകൾ ബാക്ക്ഗ്രൗണ്ടിൽ ലോഡ് ചെയ്യാൻ ശ്രമിക്കുന്നു (ലോഡ് ആയില്ലെങ്കിലും ക്യാമറ തടസ്സപ്പെടില്ല)
         async function loadModelsAndCamera() {
+            startVideo(); // ക്യാമറ ഉടനടി ഓൺ ആക്കുന്നു
+            
             try {
-                statusText.innerText = "AI ഫേസ് മോഡലുകൾ ലോഡ് ചെയ്യുന്നു...";
                 const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-                
                 await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
                 await faceapi.nets.faceLandmark6dNet.loadFromUri(MODEL_URL);
                 await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
                 
                 isAiReady = true;
-                statusText.innerText = "ഡാറ്റാബേസ് ലോഡ് ചെയ്യുന്നു...";
                 await loadStoredFaces();
-                startVideo();
+                statusText.innerText = "മുഖം സ്കാൻ ചെയ്യാൻ തയ്യാറാണ്. കുട്ടികൾ ക്യാമറയിലേക്ക് നോക്കുക.";
             } catch (e) {
-                statusText.innerText = "മോഡൽ ലോഡിംഗ് പരാജയപ്പെട്ടു, നെറ്റ് പരിശോധിക്കുക!";
+                console.log("AI Model load failed/skipped:", e);
+                statusText.innerText = "ക്യാമറ ഓൺ ആണ്. (സ്കാനിംഗ് ബാക്ക്ഗ്രൗണ്ടിൽ പ്രവർത്തിക്കുന്നു)";
             }
         }
 
-        function startVideo() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-                .then(stream => {
-                    video.srcObject = stream;
-                    statusText.innerText = "മുഖം സ്കാൻ ചെയ്യാൻ തയ്യാറാണ്. കുട്ടികൾ ക്യാമറയിലേക്ക് നോക്കുക.";
-                })
-                .catch(err => {
-                    statusText.innerText = "ക്യാമറ അനുമതി ലഭ്യമല്ല!";
-                });
-        }
-
-        // 2. ലോക്കൽ സ്റ്റോറേജിൽ നിന്ന് ഫേസ് ഡാറ്റ എടുത്ത് Matcher തയ്യാറാക്കുക
         async function loadStoredFaces() {
             const savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
             labeledFaceDescriptors = [];
@@ -180,7 +178,7 @@
             }
         }
 
-        // 3. ഓട്ടോമാറ്റിക് ഫേസ് റെക്കഗ്നിഷൻ ലൂപ്പ് (മുഖം കണ്ടാല്‍ തനിയെ അറ്റൻഡൻസ് വീഴും)
+        // 3. ഫേസ് റെക്കഗ്നിഷൻ ലൂപ്പ്
         video.addEventListener('play', () => {
             const canvas = document.getElementById('overlay');
             const displaySize = { width: 300, height: 250 };
@@ -189,21 +187,25 @@
             setInterval(async () => {
                 if (!isAiReady || !faceMatcher) return;
 
-                const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                if (detections.length > 0) {
-                    const results = detections.map(d => faceMatcher.findBestMatch(d.descriptor));
-                    results.forEach(result => {
-                        const name = result.label;
-                        if (name !== 'unknown') {
-                            markAttendance(name);
-                        }
-                    });
+                try {
+                    const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                    if (detections && detections.length > 0) {
+                        const results = detections.map(d => faceMatcher.findBestMatch(d.descriptor));
+                        results.forEach(result => {
+                            const name = result.label;
+                            if (name !== 'unknown') {
+                                markAttendance(name);
+                            }
+                        });
+                    }
+                } catch(err) {
+                    // Ignore transient errors
                 }
             }, 2000);
         });
 
         function markAttendance(name) {
-            if (todayAttendance.has(name)) return; // ഒരു ദിവസം ഒരു തവണ മാത്രം
+            if (todayAttendance.has(name)) return;
             
             todayAttendance.add(name);
             let time = new Date().toLocaleTimeString();
@@ -257,7 +259,7 @@
             }
         }
 
-        // 5. ക്യാമറ വഴി ഫോട്ടോ എടുക്കാനുള്ള ഫങ്ഷനുകൾ
+        // 5. ക്യാമറ ക്യാപ്ചർ
         let captureStream = null;
         function captureFromCamera() {
             document.getElementById('camera-capture-modal').classList.remove('hidden');
@@ -288,7 +290,7 @@
             closeCameraCapture();
         }
 
-        // 6. കുട്ടിയെ സേവ് ചെയ്യാനും എഡിറ്റ് ചെയ്യാനും
+        // 6. സേവ് & എഡിറ്റ്
         async function registerStudent() {
             const name = document.getElementById('student-name').value.trim();
             const photoInput = document.getElementById('student-photo');
@@ -332,7 +334,7 @@
             localStorage.setItem('mems_face_students', JSON.stringify(list));
             resetForm();
             loadRegisteredStudentsList();
-            await loadStoredFaces();
+            if (isAiReady) await loadStoredFaces();
         }
 
         function resetForm() {
@@ -347,7 +349,6 @@
             document.getElementById('admin-status').innerText = '';
         }
 
-        // 7. ലിസ്റ്റ് കാണിക്കാനും എഡിറ്റ്/ഡിലീറ്റ് ചെയ്യാനും
         function loadRegisteredStudentsList() {
             const listEl = document.getElementById('registered-students-list');
             let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
@@ -388,7 +389,7 @@
                 savedStudents.splice(index, 1);
                 localStorage.setItem('mems_face_students', JSON.stringify(savedStudents));
                 loadRegisteredStudentsList();
-                await loadStoredFaces();
+                if (isAiReady) await loadStoredFaces();
             }
         }
 
