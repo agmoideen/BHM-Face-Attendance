@@ -3,67 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MEMS Smart Attendance</title>
-    <!-- Tailwind CSS ഫോർ പ്രൊഫഷണൽ ലുക്ക് -->
+    <title>MEMS Smart Face Attendance</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- face-api.js ലൈബ്രറി മുഖം തിരിച്ചറിയാൻ -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@latest/dist/face-api.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center p-3">
 
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden relative">
         <!-- ഹെഡർ -->
-        <div class="bg-blue-600 p-4 text-white text-center">
-            <h1 class="text-xl font-bold">MEMS ഫേസ് അറ്റൻഡൻസ്</h1>
-            <p class="text-xs text-blue-100">സ്മാർട്ട് സ്കൂൾ മാനേജ്മെന്റ് സിസ്റ്റം</p>
-        </div>
-
-        <!-- ടാബ് മെനു -->
-        <div class="flex bg-slate-200 p-1">
-            <button onclick="switchTab('scanner')" id="tab-scanner" class="flex-1 py-2 text-sm font-bold rounded-xl bg-white text-blue-600 shadow-sm transition">അറ്റൻഡൻസ്</button>
-            <button onclick="switchTab('admin')" id="tab-admin" class="flex-1 py-2 text-sm font-bold text-slate-600 transition">അഡ്മിൻ പാനൽ</button>
+        <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+            <div>
+                <h1 class="text-lg font-bold">MEMS ഫേസ് അറ്റൻഡൻസ്</h1>
+                <p class="text-xs text-blue-100">സ്മാർട്ട് സ്കൂൾ മാനേജ്മെന്റ് സിസ്റ്റം</p>
+            </div>
+            <!-- Settings / Admin Icon Button -->
+            <button onclick="openAdminModal()" class="bg-blue-700 hover:bg-blue-800 p-2 rounded-xl text-xl shadow transition">
+                ⚙️
+            </button>
         </div>
 
         <div class="p-4">
-            <!-- 1. അറ്റൻഡൻസ് സെക്ഷൻ -->
+            <!-- അറ്റൻഡൻസ് സ്കാനർ സെക്ഷൻ -->
             <div id="section-scanner">
                 <div class="relative w-full h-64 bg-slate-900 rounded-xl overflow-hidden flex justify-center items-center shadow-inner mb-3">
                     <video id="video" autoplay muted playsinline class="absolute w-full h-full object-cover"></video>
-                    <div class="absolute border-2 border-dashed border-blue-400 w-36 h-44 rounded-xl pointer-events-none"></div>
+                    <canvas id="overlay" class="absolute w-full h-full"></canvas>
                 </div>
                 
-                <div id="status" class="text-sm font-semibold text-center text-slate-700 bg-blue-50 p-2 rounded-lg mb-3">
-                    ക്യാമറ റെഡിയാകുന്നു...
+                <div id="status" class="text-sm font-semibold text-center text-slate-700 bg-blue-50 p-2.5 rounded-xl mb-3">
+                    AI മോഡലുകൾ ലോഡ് ചെയ്യുന്നു... കാത്തിരിക്കുക.
                 </div>
-
-                <button onclick="captureAttendance()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow-md transition mb-4">
-                    📷 ഹാജർ രേഖപ്പെടുത്തുക (Capture)
-                </button>
                 
-                <div>
-                    <h2 class="font-bold text-slate-700 text-sm border-b pb-1 mb-2">ഇന്നത്തെ ഹാജർ പട്ടിക:</h2>
-                    <ul id="attendance-list" class="max-h-36 overflow-y-auto text-xs text-slate-600 space-y-1.5 bg-slate-50 p-2 rounded-xl">
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="font-bold text-slate-700 text-sm">ഇന്നത്തെ ഹാജർ പട്ടിക:</h2>
+                        <button onclick="shareOnWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
+                            💬 WhatsApp ചെയ്യുക
+                        </button>
+                    </div>
+                    <ul id="attendance-list" class="max-h-40 overflow-y-auto text-xs text-slate-600 space-y-1.5 bg-slate-50 p-2.5 rounded-xl">
                         <li class="text-slate-400 text-center py-2">ഹാജരുകാർ ഇതുമില്ല...</li>
                     </ul>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- 2. അഡ്മിൻ പാനൽ സെക്ഷൻ -->
-            <div id="section-admin" class="hidden space-y-3">
-                <h2 class="font-bold text-slate-700 text-sm">പുതിയ കുട്ടിയുടെ വിവരങ്ങൾ:</h2>
-                <input type="text" id="student-name" placeholder="കുട്ടിയുടെ പേര്" class="w-full p-2.5 text-sm border rounded-xl focus:outline-none focus:border-blue-500">
-                
-                <div class="border-2 border-dashed border-slate-300 p-3 rounded-xl text-center">
-                    <input type="file" id="student-photo" accept="image/*" class="w-full text-xs text-slate-500">
+    <!-- അഡ്മിൻ പാസ്‌വേർഡ് & ഡാഷ്‌ബോർഡ് മോഡൽ (Popup) -->
+    <div id="admin-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex justify-center items-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-5 relative max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3 mb-3">
+                <h2 class="font-bold text-slate-800 text-base">അഡ്മിൻ പാനൽ</h2>
+                <button onclick="closeAdminModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <!-- പാസ്‌വേർഡ് വെരിഫിക്കേഷൻ ബോക്സ് -->
+            <div id="password-box" class="space-y-3">
+                <p class="text-xs text-slate-600">തുറക്കാൻ പാസ്‌വേർഡ് നൽകുക (Default: 1234)</p>
+                <input type="password" id="admin-pass" placeholder="പാസ്‌വേർഡ് നൽകുക" class="w-full p-2.5 text-sm border rounded-xl">
+                <button onclick="verifyPassword()" class="w-full bg-blue-600 text-white text-sm font-bold py-2.5 rounded-xl">ലോഗിൻ ചെയ്യുക</button>
+            </div>
+
+            <!-- യഥാർത്ഥ അഡ്മിൻ പാനൽ കൺട്രാന്റുകൾ (പാസ്‌വേർഡ് ശരിയായാൽ കാണുന്നത്) -->
+            <div id="admin-content" class="hidden space-y-4">
+                <div class="bg-slate-50 p-3 rounded-xl space-y-2">
+                    <h3 class="font-bold text-slate-700 text-xs">പുതിയ കുട്ടിയുടെ മുഖം രജിസ്റ്റർ ചെയ്യാൻ:</h3>
+                    <input type="text" id="student-name" placeholder="കുട്ടിയുടെ പേര്" class="w-full p-2 text-xs border rounded-lg">
+                    <input type="file" id="student-photo" accept="image/*" class="w-full text-xs text-slate-500 bg-white p-1.5 border rounded-lg">
+                    <button onclick="registerStudent()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg shadow">💾 ഫോട്ടോ സഹിതം സേവ് ചെയ്യുക</button>
+                    <div id="admin-status" class="text-xs text-center font-medium"></div>
                 </div>
 
-                <button onclick="saveStudent()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 rounded-xl shadow-md transition">
-                    💾 കുട്ടിയുടെ ഡാറ്റ സേവ് ചെയ്യുക
-                </button>
-                <div id="admin-status" class="text-xs text-center font-medium"></div>
-
-                <div class="mt-4">
-                    <h3 class="font-bold text-slate-700 text-xs mb-1"> രജിസ്റ്റർ ചെയ്ത കുട്ടികൾ:</h3>
-                    <ul id="student-list" class="max-h-32 overflow-y-auto text-xs bg-slate-50 p-2 rounded-xl space-y-1 text-slate-600">
-                        <!-- കുട്ടികളുടെ പേര് ഇവിടെ കാണിക്കും -->
+                <div>
+                    <h3 class="font-bold text-slate-700 text-xs mb-2">രജിസ്റ്റർ ചെയ്ത കുട്ടികളുടെ ലിസ്റ്റ് (എഡിറ്റ്/ക്ലിയർ):</h3>
+                    <ul id="registered-students-list" class="max-h-40 overflow-y-auto text-xs bg-slate-50 p-2 rounded-xl space-y-1.5">
+                        <!-- കുട്ടികളുടെ ലിസ്റ്റ് ഇവിടെ കാണിക്കും -->
                     </ul>
                 </div>
             </div>
@@ -74,84 +89,208 @@
         const video = document.getElementById('video');
         const statusText = document.getElementById('status');
         const attendanceList = document.getElementById('attendance-list');
-        const studentList = document.getElementById('student-list');
+        
+        let labeledFaceDescriptors = [];
+        let faceMatcher = null;
+        let todayAttendance = new Set();
 
-        // ടാബ് മാറ്റാൻ
-        function switchTab(tab) {
-            if (tab === 'scanner') {
-                document.getElementById('section-scanner').classList.remove('hidden');
-                document.getElementById('section-admin').classList.add('hidden');
-                document.getElementById('tab-scanner').className = "flex-1 py-2 text-sm font-bold rounded-xl bg-white text-blue-600 shadow-sm transition";
-                document.getElementById('tab-admin').className = "flex-1 py-2 text-sm font-bold text-slate-600 transition";
+        // 1. AI മോഡലുകൾ ലോഡ് ചെയ്യുക
+        async function loadModels() {
+            try {
+                statusText.innerText = "AI ഫേസ് മോഡലുകൾ ലോഡ് ചെയ്യുന്നു...";
+                const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+                
+                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceLandmark6dNet.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+                
+                statusText.innerText = "ഡാറ്റാബേസ് പരിശോധിക്കുന്നു...";
+                await loadStoredFaces();
                 startVideo();
-            } else {
-                document.getElementById('section-scanner').classList.add('hidden');
-                document.getElementById('section-admin').classList.remove('hidden');
-                document.getElementById('tab-admin').className = "flex-1 py-2 text-sm font-bold rounded-xl bg-white text-blue-600 shadow-sm transition";
-                document.getElementById('tab-scanner').className = "flex-1 py-2 text-sm font-bold text-slate-600 transition";
-                stopVideo();
-                loadStudentsList();
+            } catch (error) {
+                statusText.innerText = "ലോഡിംഗ് പരാജയപ്പെട്ടു. ഇൻറർനെറ്റ് പരിശോധിക്കുക!";
+                console.error(error);
             }
         }
 
-        // ക്യാമറ ഓൺ ആക്കാൻ
+        // 2. ക്യാമറ ഓൺ ആക്കൽ
         function startVideo() {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
                 .then(stream => {
                     video.srcObject = stream;
-                    statusText.innerText = "കുട്ടിയുടെ മുഖം ഫ്രെയിമിനുള്ളിൽ കാണിച്ച് ബട്ടൺ അമർത്തുക.";
+                    statusText.innerText = "മുഖം സ്കാൻ ചെയ്യാൻ തയ്യാറാണ്. കുട്ടികൾ ക്യാമറയിലേക്ക് നോക്കുക.";
                 })
                 .catch(err => {
                     statusText.innerText = "ക്യാമറ അനുമതി ലഭ്യമല്ല!";
                 });
         }
 
-        function stopVideo() {
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
+        // 3. ലോക്കൽ സ്റ്റോറേജിൽ നിന്ന് കുട്ടികളുടെ ഫേസ് ഡാറ്റ ലോഡ് ചെയ്യുക
+        async function loadStoredFaces() {
+            const savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
+            labeledFaceDescriptors = [];
+
+            for (let student of savedStudents) {
+                try {
+                    const img = await faceapi.fetchImage(student.photo);
+                    const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                    if (detections) {
+                        labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(student.name, [detections.descriptor]));
+                    }
+                } catch (e) {
+                    console.error("Error loading student image:", e);
+                }
+            }
+
+            if (labeledFaceDescriptors.length > 0) {
+                faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6);
+            } else {
+                faceMatcher = null;
             }
         }
 
-        // കുട്ടികളെ സേവ് ചെയ്യാൻ
-        function saveStudent() {
-            const name = document.getElementById('student-name').value.trim();
-            if (!name) {
-                alert("ദയവായി കുട്ടിയുടെ പേര് നൽകുക!");
-                return;
-            }
+        // 4. ലൈവ് ഫേസ് റെക്കഗ്നിഷൻ ലൂപ്പ്
+        video.addEventListener('play', () => {
+            const canvas = document.getElementById('overlay');
+            const displaySize = { width: video.videoWidth || 300, height: video.videoHeight || 250 };
+            faceapi.matchDimensions(canvas, displaySize);
+
+            setInterval(async () => {
+                if (!faceMatcher) return;
+
+                const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                
+                const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
+
+                results.forEach(result => {
+                    const name = result.label;
+                    if (name !== 'unknown') {
+                        markAttendance(name);
+                    }
+                });
+            }, 1500);
+        });
+
+        // 5. ഹാജർ രേഖപ്പെടുത്തുന്ന ഫങ്ഷൻ
+        function markAttendance(name) {
+            if (todayAttendance.has(name)) return; // ഒരു ദിവസം ഒരു തവണ മാത്രം
             
-            let students = JSON.parse(localStorage.getItem('mems_students')) || [];
-            students.push(name);
-            localStorage.setItem('mems_students', JSON.stringify(students));
-
-            document.getElementById('admin-status').innerText = `${name} വിജയകരമായി സേവ് ചെയ്തു!`;
-            document.getElementById('admin-status').className = "text-xs text-center font-medium text-emerald-600";
-            document.getElementById('student-name').value = '';
-            loadStudentsList();
-        }
-
-        function loadStudentsList() {
-            let students = JSON.parse(localStorage.getItem('mems_students')) || [];
-            studentList.innerHTML = students.length ? students.map(s => `<li class="p-1 border-b">${s}</li>`).join('') : '<li class="text-slate-400">കുട്ടികൾ ആരും ഇല്ല</li>';
-        }
-
-        // ഹാജർ രേഖപ്പെടുത്താൻ (ക്യാപ്ചർ ബട്ടൺ വഴി)
-        function captureAttendance() {
-            let students = JSON.parse(localStorage.getItem('mems_students')) || [];
-            if (students.length === 0) {
-                alert("ആദ്യം അഡ്മിൻ പാനലിൽ പോയി കുട്ടികളെ ചേർക്കുക!");
-                return;
-            }
-            
-            // തൽക്കാലം ലിസ്റ്റിലുള്ള കുട്ടികളെ വെച്ച് മാച്ച് ചെയ്യുന്ന രീതി (ഏറ്റവും എളുപ്പമുള്ള ഫ്രണ്ട്എൻഡ് രീതി)
-            let randomStudent = students[Math.floor(Math.random() * students.length)];
+            todayAttendance.add(name);
             let time = new Date().toLocaleTimeString();
+
+            if (attendanceList.querySelector('.text-slate-400')) {
+                attendanceList.innerHTML = '';
+            }
+
+            attendanceList.innerHTML += `
+                <li class="flex justify-between items-center bg-white p-2 rounded-lg shadow-sm border border-slate-100">
+                    <span class="font-bold text-slate-700">👤 ${name}</span>
+                    <span class="text-emerald-600 font-semibold">${time}</span>
+                </li>`;
             
-            attendanceList.innerHTML += `<li class="flex justify-between bg-white p-1.5 rounded shadow-sm"><span>👤 <b>${randomStudent}</b></span> <span class="text-slate-400">${time}</span></li>`;
-            statusText.innerText = `${randomStudent} - ഹാജർ രേഖപ്പെടുത്തി!`;
+            statusText.innerText = `✅ ${name} - ഹാജർ രേഖപ്പെടുത്തി!`;
         }
 
-        startVideo();
+        // 6. WhatsApp-ലേക്ക് ഷെയർ ചെയ്യാൻ
+        function shareOnWhatsApp() {
+            if (todayAttendance.size === 0) {
+                alert("ഇതുവരെ ആരുടെയും ഹാജർ രേഖപ്പെടുത്തിയിട്ടില്ല!");
+                return;
+            }
+            let text = "school MEMS - ഇന്നത്തെ ഹാജർ പട്ടിക (%0A";
+            let i = 1;
+            todayAttendance.forEach(name => {
+                text += `${i}. ${name}%0A`;
+                i++;
+            });
+            window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+        }
+
+        // 7. അഡ്മിൻ മോഡൽ കൺട്രോളുകൾ
+        function openAdminModal() {
+            document.getElementById('admin-modal').classList.remove('hidden');
+        }
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.add('hidden');
+            document.getElementById('password-box').classList.remove('hidden');
+            document.getElementById('admin-content').classList.add('hidden');
+            document.getElementById('admin-pass').value = '';
+        }
+        function verifyPassword() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === '1234') { // നിങ്ങൾക്ക് പാസ്‌വേർഡ് മാറ്റാം
+                document.getElementById('password-box').classList.add('hidden');
+                document.getElementById('admin-content').classList.remove('hidden');
+                loadRegisteredStudentsList();
+            } else {
+                alert("തൊയതായ പാസ്‌വേർഡ്!");
+            }
+        }
+
+        // 8. പുതിയ കുട്ടിയെ ഫോട്ടോ സഹിതം രജിസ്റ്റർ ചെയ്യാൻ
+        async function registerStudent() {
+            const name = document.getElementById('student-name').value.trim();
+            const photoInput = document.getElementById('student-photo');
+
+            if (!name || photoInput.files.length === 0) {
+                alert("പേരും ഫോട്ടോയും നിർബന്ധമാണ്!");
+                return;
+            }
+
+            document.getElementById('admin-status').innerText = "ഫോട്ടോ പ്രോസസ്സ് ചെയ്യുന്നു...";
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const photoDataUrl = event.target.result;
+                
+                let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
+                savedStudents.push({ name: name, photo: photoDataUrl });
+                localStorage.setItem('mems_face_students', JSON.stringify(savedStudents));
+
+                document.getElementById('admin-status').innerText = `${name} വിജയകരമായി സേവ് ചെയ്തു!`;
+                document.getElementById('student-name').value = '';
+                photoInput.value = '';
+                
+                await loadStoredFaces();
+                loadRegisteredStudentsList();
+            };
+            reader.readAsDataURL(photoInput.files[0]);
+        }
+
+        // 9. രജിസ്റ്റർ ചെയ്ത കുട്ടികളുടെ ലിസ്റ്റ് കാണാനും ഡിലീറ്റ് ചെയ്യാനും
+        function loadRegisteredStudentsList() {
+            const listEl = document.getElementById('registered-students-list');
+            let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
+
+            if (savedStudents.length === 0) {
+                listEl.innerHTML = '<li class="text-slate-400 text-center py-2">കുട്ടികൾ ആരും ഇല്ല</li>';
+                return;
+            }
+
+            listEl.innerHTML = savedStudents.map((s, index) => `
+                <li class="flex justify-between items-center bg-white p-2 rounded-lg border">
+                    <div class="flex items-center gap-2">
+                        <img src="${s.photo}" class="w-8 h-8 rounded-full object-cover">
+                        <span class="font-medium text-slate-700">${s.name}</span>
+                    </div>
+                    <button onclick="deleteStudent(${index})" class="text-red-500 hover:text-red-700 font-bold text-xs bg-red-50 px-2 py-1 rounded">ഡിലീറ്റ്</button>
+                </li>
+            `).join('');
+        }
+
+        // 10. കുട്ടി ഡാറ്റ ഡിലീറ്റ് ചെയ്യാൻ
+        async function deleteStudent(index) {
+            let savedStudents = JSON.parse(localStorage.getItem('mems_face_students')) || [];
+            savedStudents.splice(index, 1);
+            localStorage.setItem('mems_face_students', JSON.stringify(savedStudents));
+            
+            await loadStoredFaces();
+            loadRegisteredStudentsList();
+        }
+
+        // ആപ്പ് സ്റ്റാർട്ട് ചെയ്യുക
+        loadModels();
     </script>
 </body>
 </html>
