@@ -27,6 +27,11 @@
                     <video id="video" autoplay muted playsinline class="absolute w-full h-full object-cover"></video>
                     <!-- ഫേസ് ഫ്രെയിം ഗൈഡ് -->
                     <div class="absolute border-2 border-dashed border-blue-400 w-36 h-44 rounded-xl pointer-events-none"></div>
+                    
+                    <!-- ക്യാമറ മാറ്റാനുള്ള ബട്ടൺ (Front / Back Switch) -->
+                    <button onclick="switchCamera()" class="absolute top-2 right-2 bg-black/60 hover:bg-black text-white p-2 rounded-xl text-xs backdrop-blur-md shadow transition flex items-center gap-1 z-10">
+                        🔄 ക്യാമറ മാറ്റുക
+                    </button>
                 </div>
                 
                 <div id="status" class="text-sm font-semibold text-center text-slate-700 bg-blue-50 p-2.5 rounded-xl mb-3">
@@ -120,10 +125,14 @@
 
     <!-- ക്യാമറ ലൈവ് ക്യാപ്ചർ മോഡൽ -->
     <div id="camera-capture-modal" class="fixed inset-0 bg-black/80 hidden flex flex-col justify-center items-center p-4 z-50">
-        <div class="w-full max-w-sm bg-white rounded-2xl p-4 text-center space-y-3">
+        <div class="w-full max-w-sm bg-white rounded-2xl p-4 text-center space-y-3 relative">
             <h3 class="font-bold text-slate-800 text-sm">കുട്ടിയുടെ മുഖം വ്യക്തമായി കാണിച്ച് ഫോട്ടോ എടുക്കുക</h3>
             <div class="relative w-full h-64 bg-black rounded-xl overflow-hidden flex justify-center items-center">
                 <video id="capture-video" autoplay muted playsinline class="absolute w-full h-full object-cover"></video>
+                <!-- ക്യാപ്ചർ മോഡലിലെ ക്യാമറ സ്വിച്ച് ബട്ടൺ -->
+                <button onclick="switchCaptureCamera()" class="absolute top-2 right-2 bg-black/60 hover:bg-black text-white p-1.5 rounded-lg text-xs backdrop-blur-md shadow transition z-10">
+                    🔄 ക്യാമറ മാറ്റുക
+                </button>
             </div>
             <div class="flex gap-2">
                 <button onclick="takeSnapshot()" class="flex-1 bg-emerald-600 text-white text-xs font-bold py-2 rounded-xl">📸 ഫോട്ടോ എടുക്കുക</button>
@@ -138,17 +147,32 @@
         const attendanceList = document.getElementById('attendance-list');
         
         let todayAttendance = new Set();
+        let currentFacingMode = "user"; // "user" = Front, "environment" = Back
+        let captureFacingMode = "user";
+        let currentStream = null;
+        let captureStream = null;
 
-        // 1. ക്യാമറ ഓൺ ആക്കൽ
-        function startVideo() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        // 1. പ്രധാന ക്യാമറ ഓൺ ആക്കൽ (ഫ്രണ്ട്/ബാക്ക് സപ്പോർട്ടോട് കൂടി)
+        function startVideo(facing = "user") {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } })
                 .then(stream => {
+                    currentStream = stream;
                     video.srcObject = stream;
                     statusText.innerText = "ക്യാമറ റെഡിയാണ്!";
                 })
                 .catch(err => {
                     statusText.innerText = "ക്യാമറ അനുമതി ലഭ്യമല്ല!";
                 });
+        }
+
+        // ക്യാമറ മാറ്റാനുള്ള ഫങ്ഷൻ (സ്കാനർ പേജിൽ)
+        function switchCamera() {
+            currentFacingMode = (currentFacingMode === "user") ? "environment" : "user";
+            startVideo(currentFacingMode);
         }
 
         // 2. ഹാജർ രേഖപ്പെടുത്താൻ കുട്ടികളുടെ ലിസ്റ്റ് കാണിക്കുന്ന മോഡൽ തുറക്കൽ
@@ -233,22 +257,35 @@
             }
         }
 
-        // 4. ക്യാമറ ഫോട്ടോ ക്യാപ്ചർ
-        let captureStream = null;
+        // 4. ക്യാമറ ഫോട്ടോ ക്യാപ്ചർ (ഫ്രണ്ട് & ബാക്ക് സപ്പോർട്ടോട് കൂടി)
         function captureFromCamera() {
             document.getElementById('camera-capture-modal').classList.remove('hidden');
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+            startCaptureVideo(captureFacingMode);
+        }
+
+        function startCaptureVideo(facing) {
+            if (captureStream) {
+                captureStream.getTracks().forEach(track => track.stop());
+            }
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } })
                 .then(stream => {
                     captureStream = stream;
                     document.getElementById('capture-video').srcObject = stream;
                 });
         }
+
+        function switchCaptureCamera() {
+            captureFacingMode = (captureFacingMode === "user") ? "environment" : "user";
+            startCaptureVideo(captureFacingMode);
+        }
+
         function closeCameraCapture() {
             if (captureStream) {
                 captureStream.getTracks().forEach(track => track.stop());
             }
             document.getElementById('camera-capture-modal').classList.add('hidden');
         }
+
         function takeSnapshot() {
             const capVideo = document.getElementById('capture-video');
             const canvas = document.createElement('canvas');
@@ -366,7 +403,7 @@
         }
 
         // ആപ്പ് സ്റ്റാർട്ട് ചെയ്യുക
-        startVideo();
+        startVideo(currentFacingMode);
     </script>
 </body>
 </html>
